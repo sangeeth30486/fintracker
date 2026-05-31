@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinTracker — Personalised Financial Tracker Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+  :root {
+    --navy:#1A2B4A; --teal:#1ABC9C; --gold:#F39C12; --red:#E74C3C;
+    --green:#27AE60; --white:#FFFFFF; --offwhite:#F8F6F1;
+    --gray:#6B7280; --light:#F2F4F7; --border:#E5E7EB;
+    --shadow:0 4px 24px rgba(26,43,74,0.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--offwhite);color:var(--navy);min-height:100vh}
+  header{background:var(--navy);padding:20px 40px;display:flex;align-items:center;justify-content:space-between}
+  .logo{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--white)}
+  .logo span{color:var(--teal)}
+  .tagline{color:rgba(255,255,255,0.45);font-size:0.78rem;margin-top:2px}
+  .progress-wrapper{background:var(--navy);padding:0 40px 24px}
+  .steps{display:flex;max-width:960px;margin:0 auto}
+  .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
+  .step::before{content:'';position:absolute;top:15px;left:50%;width:100%;height:2px;background:rgba(255,255,255,0.12);z-index:0}
+  .step:last-child::before{display:none}
+  .step-dot{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.4);position:relative;z-index:1;transition:all .3s}
+  .step.active .step-dot{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 0 0 4px rgba(26,188,156,0.25)}
+  .step.done .step-dot{background:var(--green);border-color:var(--green);color:#fff}
+  .step-label{font-size:0.62rem;color:rgba(255,255,255,0.35);text-align:center;font-weight:500}
+  .step.active .step-label{color:var(--teal)}
+  .step.done .step-label{color:rgba(255,255,255,0.55)}
+  main{max-width:860px;margin:40px auto;padding:0 24px}
+  .card{background:#fff;border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
+  .card-header{padding:32px 40px 24px;border-bottom:1px solid var(--border)}
+  .card-header h2{font-family:'DM Serif Display',serif;font-size:1.8rem;margin-bottom:6px}
+  .card-header p{color:var(--gray);font-size:0.9rem;line-height:1.5}
+  .card-body{padding:32px 40px}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .form-grid.triple{grid-template-columns:1fr 1fr 1fr}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field.full{grid-column:1/-1}
+  label{font-size:0.8rem;font-weight:600;color:var(--navy);letter-spacing:.02em;text-transform:uppercase}
+  .sublabel{font-size:0.76rem;color:var(--gray);font-weight:400;text-transform:none}
+  input,select{padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.9rem;color:var(--navy);background:#fff;transition:border-color .2s,box-shadow .2s;outline:none;width:100%}
+  input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(26,188,156,0.12)}
+  input::placeholder{color:#BCC2CA}
+  .dynamic-row{background:var(--light);border:1.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;position:relative}
+  .row-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;align-items:end}
+  .delete-btn{position:absolute;top:10px;right:12px;background:none;border:none;color:#CBD5E0;cursor:pointer;font-size:1.1rem;transition:color .2s}
+  .delete-btn:hover{color:var(--red)}
+  .add-btn{display:flex;align-items:center;gap:8px;padding:10px 18px;border:1.5px dashed var(--teal);border-radius:10px;background:rgba(26,188,156,0.05);color:var(--teal);font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;width:100%;justify-content:center;transition:all .2s;margin-top:4px}
+  .add-btn:hover{background:rgba(26,188,156,0.12)}
+  .checkbox-row{display:flex;align-items:center;gap:10px;cursor:pointer}
+  .checkbox-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--teal);cursor:pointer;flex-shrink:0}
+  .risk-selector{display:flex;gap:12px}
+  .risk-option{flex:1;padding:14px;border:2px solid var(--border);border-radius:12px;text-align:center;cursor:pointer;transition:all .2s}
+  .risk-option:hover{border-color:var(--teal)}
+  .risk-option.selected{border-color:var(--teal);background:rgba(26,188,156,0.08)}
+  .risk-icon{font-size:1.4rem;margin-bottom:4px}
+  .risk-label{font-weight:600;font-size:0.85rem}
+  .risk-desc{color:var(--gray);font-size:0.74rem;margin-top:2px}
+  .nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+  .btn{padding:12px 28px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+  .btn-primary{background:var(--navy);color:#fff}
+  .btn-primary:hover{background:#253D6B;transform:translateY(-1px)}
+  .btn-secondary{background:transparent;color:var(--gray);border:1.5px solid var(--border)}
+  .btn-secondary:hover{border-color:var(--navy);color:var(--navy)}
+  .btn-generate{background:linear-gradient(135deg,var(--teal),#16A085);color:#fff;padding:14px 36px;font-size:1rem;box-shadow:0 4px 16px rgba(26,188,156,0.3)}
+  .btn-generate:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(26,188,156,0.4)}
+  .btn-generate:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+  .review-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .review-card{background:var(--light);border-radius:12px;padding:18px}
+  .review-card h4{font-size:0.78rem;font-weight:600;color:var(--gray);text-transform:uppercase;margin-bottom:10px;letter-spacing:.04em}
+  .review-item{display:flex;justify-content:space-between;padding:4px 0;font-size:0.87rem;border-bottom:1px solid rgba(0,0,0,0.04)}
+  .review-item:last-child{border-bottom:none}
+  .review-item span:last-child{font-weight:600}
+  .review-card.full{grid-column:1/-1}
+  .success-screen{text-align:center;padding:48px 40px}
+  .success-icon{width:80px;height:80px;background:rgba(26,188,156,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.2rem;margin:0 auto 24px}
+  .success-screen h2{font-family:'DM Serif Display',serif;font-size:2rem;margin-bottom:12px}
+  .success-screen p{color:var(--gray);font-size:0.95rem;max-width:440px;margin:0 auto 28px;line-height:1.6}
+  .instructions{background:var(--light);border-radius:14px;padding:22px;text-align:left;max-width:500px;margin:0 auto 28px}
+  .instructions h4{font-weight:600;margin-bottom:12px;font-size:0.9rem}
+  .instructions ol{padding-left:18px}
+  .instructions li{font-size:0.87rem;color:var(--gray);margin-bottom:8px;line-height:1.5}
+  .instructions li strong{color:var(--navy)}
+  .generating{text-align:center;padding:56px 40px}
+  .spinner{width:48px;height:48px;border:4px solid rgba(26,188,156,0.2);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .generating p{color:var(--gray);font-size:0.95rem}
+  .info-banner{background:rgba(26,188,156,0.07);border:1px solid rgba(26,188,156,0.22);border-radius:10px;padding:12px 16px;font-size:0.84rem;color:var(--navy);margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;line-height:1.5}
+  .info-banner .icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+  .err-banner{background:#FEE;border:1px solid #F88;border-radius:10px;padding:14px 16px;font-size:0.87rem;color:#C0392B;margin-top:16px}
+  hr.divider{border:none;border-top:1px solid var(--border);margin:24px 0}
+  .sub-row{margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;align-items:end}
+  footer{text-align:center;padding:32px;color:var(--gray);font-size:0.78rem}
+
+  /* ── PORTFOLIO RESTRUCTURING BUTTON ── */
+  .restr-bar{background:linear-gradient(135deg,#1A2B4A,#2D5986);border-radius:14px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;margin-top:24px;gap:16px}
+  .restr-bar-text h4{font-family:'DM Serif Display',serif;font-size:1rem;color:#fff;margin-bottom:4px}
+  .restr-bar-text p{font-size:0.8rem;color:rgba(255,255,255,0.55)}
+  .restr-btns{display:flex;gap:10px;flex-shrink:0}
+  .restr-btn{padding:9px 20px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;border:none;transition:all .2s}
+  .restr-btn.yes{background:var(--teal);color:#fff}
+  .restr-btn.yes:hover{background:#16A085}
+  .restr-btn.no{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2)}
+  .restr-btn.no:hover{background:rgba(255,255,255,0.18)}
+  .restr-btn.selected-yes{background:var(--teal);color:#fff;box-shadow:0 0 0 3px rgba(26,188,156,0.4)}
+  .restr-btn.selected-no{background:rgba(255,255,255,0.25);color:#fff}
+
+  /* ── AI MODAL ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,20,40,0.7);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;animation:fadeIn .2s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal{background:#fff;border-radius:20px;width:100%;max-width:720px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,0.25);animation:slideUp .25s ease}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .modal-header{padding:24px 28px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .modal-header h3{font-family:'DM Serif Display',serif;font-size:1.3rem}
+  .modal-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray);transition:color .2s;line-height:1}
+  .modal-close:hover{color:var(--red)}
+  .modal-body{padding:24px 28px;overflow-y:auto;flex:1}
+  .ai-loading{display:flex;flex-direction:column;align-items:center;padding:40px;gap:16px}
+  .ai-loading p{color:var(--gray);font-size:0.9rem}
+  .ai-pulse{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--teal),#16A085);display:flex;align-items:center;justify-content:center;font-size:1.6rem;animation:pulse 1.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(26,188,156,0.4)}50%{transform:scale(1.08);box-shadow:0 0 0 12px rgba(26,188,156,0)}}
+  .ai-response{font-size:0.9rem;line-height:1.7;color:var(--navy)}
+  .ai-response h4{font-family:'DM Serif Display',serif;font-size:1.1rem;margin:20px 0 8px;color:var(--navy)}
+  .ai-response h4:first-child{margin-top:0}
+  .ai-response p{margin-bottom:12px;color:#374151}
+  .ai-response ul{padding-left:18px;margin-bottom:12px}
+  .ai-response li{margin-bottom:6px;color:#374151}
+  .ai-response strong{color:var(--navy)}
+  .ai-response .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:600;margin-right:4px}
+  .ai-response .tag-red{background:#FEE;color:var(--red)}
+  .ai-response .tag-green{background:#D5F5E3;color:var(--green)}
+  .ai-response .tag-yellow{background:#FEF9E7;color:#B7770D}
+  .ai-err{text-align:center;padding:32px;color:var(--red);font-size:0.9rem}
+
+  @media(max-width:640px){
+    header{padding:16px 20px}
+    .progress-wrapper{padding:0 20px 20px}
+    main{padding:0 12px;margin:20px auto}
+    .card-header,.card-body{padding:24px 20px}
+    .form-grid,.form-grid.triple{grid-template-columns:1fr}
+    .row-grid{grid-template-columns:1fr 1fr}
+    .review-grid{grid-template-columns:1fr}
+    .risk-selector{flex-direction:column}
+    .step-label{font-size:0.58rem}
+    .restr-bar{flex-direction:column;align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">Fin<span>Tracker</span></div>
+    <div class="tagline">Personalised financial tracker — generated in seconds</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div style="color:rgba(255,255,255,0.35);font-size:0.8rem">14 sheets · Auto-linked · Import to Google Sheets</div>
+    <div id="saved-indicator" style="font-size:0.75rem;color:rgba(26,188,156,0.7);display:flex;align-items:center;gap:5px;transition:opacity .3s">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block"></span>
+      Auto-saved
+    </div>
+    <button onclick="clearAndReset()" title="Clear all data and start fresh"
+      style="padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);
+             background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
+             font-family:DM Sans,sans-serif;font-size:0.78rem;font-weight:600;
+             cursor:pointer;transition:all .2s;white-space:nowrap"
+      onmouseover="this.style.background='rgba(231,76,60,0.3)';this.style.borderColor='rgba(231,76,60,0.6)';this.style.color='#fff'"
+      onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.borderColor='rgba(255,255,255,0.2)';this.style.color='rgba(255,255,255,0.6)'">
+      🗑 Start Fresh
+    </button>
+  </div>
+</header>
+<div class="progress-wrapper">
+  <div class="steps" id="steps-bar"></div>
+</div>
+<main>
+  <div class="card" id="app"></div>
+</main>
+<div id="modal-root"></div>
+<footer>FinTracker v1.2 · Your data stays on your device until generation · Built for Indian &amp; NRI families</footer>
+
+<script>
+// ── CONSTANTS ─────────────────────────────────────────────────────
+const STEPS=[
+  {label:'Personal'},{label:'Income'},{label:'Investments'},
+  {label:'Loans'},{label:'Commitments'},{label:'Insurance'},
+  {label:'Goals'},{label:'Preferences'},{label:'Review'},
+];
+const CURRENCIES=['INR','AED','USD','GBP','EUR','SGD','CAD','AUD'];
+const INV_TYPES=['Mutual Fund','Index Fund','NPS','PPF','FD','RD','Gold','Stocks','ETF','IBKR','Real Estate','SSY','LIC','Other'];
+const LIAB_TYPES=['Home Loan','Personal Loan','Car Loan','Education Loan','Gold Loan','Credit Card','Other'];
+const GOAL_TYPES=['Emergency Fund','Retirement','Education','Marriage','Property','Holiday','Car','Other'];
+const POL_TYPES=['Term Insurance','Health Insurance','LIC Endowment','LIC Money Back','ULIP','Other'];
+const COMMIT_CATS=['Investment','Liability','Insurance','Living','Charity','Other'];
+const COMMIT_TYPES=['Investment','Liability','Insurance','Charity','Other'];
+const FREQS=['Monthly','Quarterly','Annual'];
+const COUNTRIES=['India','UAE','UK','USA','Singapore','Canada','Australia','Other'];
+
+// ── STATE ──────────────────────────────────────────────────────────
+let S={
+  step:0,
+  name:'',spouseName:'',country:'India',children:[],
+  currency:'INR',income:'',spouseIncome:'',
+  investments:[],liabilities:[],commitments:[],policies:[],goals:[],
+  riskAppetite:'Medium',
+  portfolioCheck:null,   // null | 'yes' | 'no'
+  generating:false,generated:false,error:'',
+  downloadUrl:'',downloadName:'',
+};
+
+// ── SET vs SETQ ────────────────────────────────────────────────────
+function set(u){Object.assign(S,u);saveState();render()}
+function setQ(u){Object.assign(S,u);saveState()}
+
+
+function saveState(){
+  try{
+    const toSave={...S,generated:false,generating:false,downloadUrl:'',downloadName:'',error:''};
+    localStorage.setItem('fintracker_state',JSON.stringify(toSave));
+    flashSaved();
+  }catch(e){}
+}
+
+function flashSaved(){
+  const el=document.getElementById('saved-indicator');
+  if(!el)return;
+  el.style.opacity='1';
+  el.style.color='rgba(26,188,156,1)';
+  clearTimeout(window._saveTimer);
+  window._saveTimer=setTimeout(()=>{
+    el.style.color='rgba(26,188,156,0.5)';
+  },1200);
+}
+
+function loadState(){
+  try{
+    const saved=localStorage.getItem('fintracker_state');
+    if(saved){const parsed=JSON.parse(saved);Object.assign(S,parsed);}
+  }catch(e){}
+}
+
+function clearAndReset(){
+  if(confirm('Clear all data and start fresh? This cannot be undone.')){
+    try{localStorage.removeItem('fintracker_state');}catch(e){}
+    Object.assign(S,{
+      step:0,
+      name:'',spouseName:'',country:'India',children:[],
+      currency:'INR',income:'',spouseIncome:'',
+      investments:[],liabilities:[],commitments:[],policies:[],goals:[],
+      riskAppetite:'Medium',portfolioCheck:null,
+      generating:false,generated:false,error:'',
+      downloadUrl:'',downloadName:'',
+    });
+    render();
+  }
+}
+
+function uid(){return '_'+Math.random().toString(36).slice(2,9)}
+function fmt(n){return Number(n||0).toLocaleString('en-IN')}
+function curYear(){return new Date().getFullYear()}
+
+// ── ARRAY OPS ──────────────────────────────────────────────────────
+function addChild(){set({children:[...S.children,{id:uid(),name:'',age:'',gender:'Boy'}]})}
+function removeChild(i){const a=[...S.children];a.splice(i,1);set({children:a})}
+function updateChild(i,k,v){const a=[...S.children];a[i]={...a[i],[k]:v};setQ({children:a})}
+
+function addInv(){set({investments:[...S.investments,{id:uid(),name:'',type:'Mutual Fund',investedINR:'',currentINR:'',recurring:false,monthlyAmount:'',owner:S.name||'Me'}]})}
+function removeInv(i){const a=[...S.investments];a.splice(i,1);set({investments:a})}
+function updateInv(i,k,v){const a=[...S.investments];a[i]={...a[i],[k]:v};setQ({investments:a})}
+function updateInvDrop(i,k,v){const a=[...S.investments];a[i]={...a[i],[k]:v};set({investments:a})}
+
+function addLiab(){set({liabilities:[...S.liabilities,{id:uid(),name:'',type:'Personal Loan',outstandingINR:'',emiINR:'',rate:'',bank:''}]})}
+function removeLiab(i){const a=[...S.liabilities];a.splice(i,1);set({liabilities:a})}
+function updateLiab(i,k,v){const a=[...S.liabilities];a[i]={...a[i],[k]:v};setQ({liabilities:a})}
+
+function addCommit(){set({commitments:[...S.commitments,{id:uid(),name:'',by:S.name||'Me',type:'Investment',inr:'',aed:'',cat:'Investment',freq:'Monthly',notes:''}]})}
+function removeCommit(i){const a=[...S.commitments];a.splice(i,1);set({commitments:a})}
+function updateCommit(i,k,v){const a=[...S.commitments];a[i]={...a[i],[k]:v};setQ({commitments:a})}
+function updateCommitDrop(i,k,v){const a=[...S.commitments];a[i]={...a[i],[k]:v};set({commitments:a})}
+
+function addPol(){set({policies:[...S.policies,{id:uid(),type:'Term Insurance',sumAssured:'',premium:'',status:'Active',holder:S.name||'Me',lifeCover:true,policyNum:''}]})}
+function removePol(i){const a=[...S.policies];a.splice(i,1);set({policies:a})}
+function updatePol(i,k,v){const a=[...S.policies];a[i]={...a[i],[k]:v};setQ({policies:a})}
+function updatePolDrop(i,k,v){const a=[...S.policies];a[i]={...a[i],[k]:v};set({policies:a})}
+
+function addGoal(){set({goals:[...S.goals,{id:uid(),name:'',type:'Retirement',amount:'',targetYear:curYear()+20,corpus:''}]})}
+function removeGoal(i){const a=[...S.goals];a.splice(i,1);set({goals:a})}
+function updateGoal(i,k,v){const a=[...S.goals];a[i]={...a[i],[k]:v};setQ({goals:a})}
+
+// ── NAVIGATION ──────────────────────────────────────────────────────
+function prev(){if(S.step>0)set({step:S.step-1})}
+function next(){if(S.step<STEPS.length-1)set({step:S.step+1})}
+function nav(back,nxt){
+  return `<div class="nav-row">
+    ${back?`<button class="btn btn-secondary" onclick="prev()">← Back</button>`:'<div></div>'}
+    ${nxt?`<button class="btn btn-primary" onclick="next()">Continue →</button>`:''}
+  </div>`;
+}
+
+// ── STEP 1: PERSONAL ───────────────────────────────────────────────
+function stepPersonal(){
+  return `
+  <div class="card-header">
+    <h2>👤 Personal Details</h2>
+    <p>Tell us about your family. This personalises every tab in your tracker.</p>
+  </div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="field">
+        <label>Your Name</label>
+        <input type="text" placeholder="e.g. Sangeeth" value="${S.name}" oninput="setQ({name:this.value})">
+      </div>
+      <div class="field">
+        <label>Spouse Name <span class="sublabel">(optional)</span></label>
+        <input type="text" placeholder="e.g. Dr. Ponnu" value="${S.spouseName}" oninput="setQ({spouseName:this.value})">
+      </div>
+      <div class="field full">
+        <label>Country of Residence</label>
+        <select onchange="set({country:this.value})">
+          ${COUNTRIES.map(c=>`<option ${S.country===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <hr class="divider">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 style="font-family:'DM Serif Display',serif;font-size:1.1rem">Children</h3>
+      <span style="font-size:0.82rem;color:var(--gray)">${S.children.length} added</span>
+    </div>
+    ${S.children.map((k,i)=>`
+      <div class="dynamic-row">
+        <button class="delete-btn" onclick="removeChild(${i})">✕</button>
+        <div class="form-grid triple">
+          <div class="field"><label>Name</label>
+            <input type="text" placeholder="Rithu" value="${k.name||''}" oninput="updateChild(${i},'name',this.value)">
+          </div>
+          <div class="field"><label>Age</label>
+            <input type="number" min="0" max="30" placeholder="2" value="${k.age||''}" oninput="updateChild(${i},'age',this.value)">
+          </div>
+          <div class="field"><label>Gender</label>
+            <select onchange="updateChild(${i},'gender',this.value)">
+              <option ${k.gender==='Boy'?'selected':''}>Boy</option>
+              <option ${k.gender==='Girl'?'selected':''}>Girl</option>
+            </select>
+          </div>
+        </div>
+      </div>`).join('')}
+    <button class="add-btn" onclick="addChild()">＋ Add Child</button>
+    ${nav(false,true)}
+  </div>`;
+}
+
+// ── STEP 2: INCOME ─────────────────────────────────────────────────
+function stepIncome(){
+  return `
+  <div class="card-header">
+    <h2>💰 Income</h2>
+    <p>Monthly take-home amounts — drives your salary allocation planner and health scorecard.</p>
+  </div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="field"><label>Primary Currency</label>
+        <select onchange="set({currency:this.value})">
+          ${CURRENCIES.map(c=>`<option ${S.currency===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"></div>
+      <div class="field"><label>${S.name||'Your'} Monthly Income <span class="sublabel">(take-home)</span></label>
+        <input type="number" placeholder="e.g. 250000" value="${S.income}" oninput="setQ({income:this.value})">
+      </div>
+      <div class="field"><label>${S.spouseName||'Spouse'} Monthly Income <span class="sublabel">(optional)</span></label>
+        <input type="number" placeholder="e.g. 150000" value="${S.spouseIncome}" oninput="setQ({spouseIncome:this.value})">
+      </div>
+    </div>
+    ${nav(true,true)}
+  </div>`;
+}
+
+// ── STEP 3: INVESTMENTS (with Portfolio Restructuring button) ───────
+function stepInvestments(){
+  const me=S.name||'Me', sp=S.spouseName;
+  const pc=S.portfolioCheck;
+  return `
+  <div class="card-header">
+    <h2>📈 Investments</h2>
+    <p>Add all existing investments. Leave blank if you're just starting — you can add later.</p>
+  </div>
+  <div class="card-body">
+    <div class="info-banner">
+      <span class="icon">💡</span>
+      <span>Enter what you invested and what it's worth today. The tracker auto-calculates returns, asset allocation, and health scores.</span>
+    </div>
+    ${S.investments.map((inv,i)=>`
+      <div class="dynamic-row">
+        <button class="delete-btn" onclick="removeInv(${i})">✕</button>
+        <div class="row-grid">
+          <div class="field"><label>Name</label>
+            <input type="text" placeholder="e.g. SBI Nifty 50 Fund" value="${inv.name||''}" oninput="updateInv(${i},'name',this.value)">
+          </div>
+          <div class="field"><label>Type</label>
+            <select onchange="updateInvDrop(${i},'type',this.value)">
+              ${INV_TYPES.map(t=>`<option ${inv.type===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Invested (${S.currency})</label>
+            <input type="number" placeholder="0" value="${inv.investedINR||''}" oninput="updateInv(${i},'investedINR',this.value)">
+          </div>
+          <div class="field"><label>Current Value</label>
+            <input type="number" placeholder="0" value="${inv.currentINR||''}" oninput="updateInv(${i},'currentINR',this.value)">
+          </div>
+        </div>
+        <div class="sub-row">
+          <label class="checkbox-row">
+            <input type="checkbox" ${inv.recurring?'checked':''} onchange="updateInvDrop(${i},'recurring',this.checked)">
+            <span style="font-size:.88rem">Monthly SIP</span>
+          </label>
+          ${inv.recurring?`
+            <div class="field" style="flex:1;min-width:130px"><label>SIP Amount</label>
+              <input type="number" placeholder="0" value="${inv.monthlyAmount||''}" oninput="updateInv(${i},'monthlyAmount',this.value)">
+            </div>`:''}
+          <div class="field" style="flex:1;min-width:140px"><label>Owner</label>
+            <select onchange="updateInvDrop(${i},'owner',this.value)">
+              <option ${!inv.owner||inv.owner===me?'selected':''}>${me}</option>
+              ${sp?`<option ${inv.owner===sp?'selected':''}>${sp}</option>`:''}
+              <option ${inv.owner==='Joint'?'selected':''}>Joint</option>
+            </select>
+          </div>
+        </div>
+      </div>`).join('')}
+    <button class="add-btn" onclick="addInv()">＋ Add Investment</button>
+
+    <!-- ── PORTFOLIO RESTRUCTURING CARD ── -->
+    <div class="restr-bar">
+      <div class="restr-bar-text">
+        <h4>🔍 Portfolio Restructuring Required?</h4>
+        <p>Let AI scan your investments and suggest improvements, rebalancing, and risk flags.</p>
+      </div>
+      <div class="restr-btns">
+        <button class="restr-btn ${pc==='yes'?'selected-yes':'yes'}" onclick="portfolioYes()">
+          ${pc==='yes'?'✓ Yes — Analysed':'Yes'}
+        </button>
+        <button class="restr-btn ${pc==='no'?'selected-no':'no'}" onclick="set({portfolioCheck:'no'})">
+          ${pc==='no'?'✓ No':'No'}
+        </button>
+      </div>
+    </div>
+
+    ${nav(true,true)}
+  </div>`;
+}
+
+// ── PORTFOLIO RESTRUCTURING — AI MODAL ────────────────────────────
+async function portfolioYes(){
+  set({portfolioCheck:'yes'});
+  if(S.investments.length===0){
+    showModal('<div class="ai-err">⚠️ Please add at least one investment before requesting analysis.</div>');
+    return;
+  }
+  showModal(null); // show loading
+
+  // Build a rich prompt from the user's data
+  const totalInvested = S.investments.reduce((s,i)=>s+parseFloat(i.investedINR||0),0);
+  const totalCurrent  = S.investments.reduce((s,i)=>s+parseFloat(i.currentINR||0),0);
+  const totalEMI      = S.liabilities.reduce((s,l)=>s+parseFloat(l.emiINR||0),0);
+  const income        = parseFloat(S.income||0)+parseFloat(S.spouseIncome||0);
+
+  const invList = S.investments.map(inv=>{
+    const inv_amt = parseFloat(inv.investedINR||0);
+    const cur_amt = parseFloat(inv.currentINR||0);
+    const ret = inv_amt>0 ? (((cur_amt-inv_amt)/inv_amt)*100).toFixed(1)+'%' : 'N/A';
+    const pct = totalCurrent>0 ? ((cur_amt/totalCurrent)*100).toFixed(1)+'%' : '0%';
+    return `- ${inv.name} (${inv.type}): Invested=${S.currency} ${inv_amt.toLocaleString()}, Current=${S.currency} ${cur_amt.toLocaleString()}, Return=${ret}, Portfolio weight=${pct}${inv.recurring?' [SIP: '+S.currency+' '+(inv.monthlyAmount||0)+'/mo]':''}`;
+  }).join('\n');
+
+  const highestRateDebt = S.liabilities.length>0
+    ? S.liabilities.reduce((a,b)=>parseFloat(a.rate||0)>parseFloat(b.rate||0)?a:b)
+    : null;
+
+  const prompt = `You are a senior financial advisor reviewing an investment portfolio. Analyse this portfolio and give specific, actionable restructuring suggestions.
+
+USER PROFILE:
+- Name: ${S.name||'User'}${S.spouseName?' & '+S.spouseName:''}
+- Country: ${S.country}
+- Risk Appetite: ${S.riskAppetite}
+- Combined Monthly Income: ${S.currency} ${income.toLocaleString()}
+- Total Monthly EMI: ${S.currency} ${totalEMI.toLocaleString()}
+- EMI-to-Income Ratio: ${income>0?((totalEMI/income)*100).toFixed(1):'N/A'}%
+
+INVESTMENT PORTFOLIO (Total Invested: ${S.currency} ${totalInvested.toLocaleString()}, Total Current Value: ${S.currency} ${totalCurrent.toLocaleString()}):
+${invList || 'No investments added yet.'}
+
+${S.liabilities.length>0?`HIGHEST INTEREST DEBT: ${highestRateDebt.name} at ${highestRateDebt.rate}% — Outstanding: ${S.currency} ${parseFloat(highestRateDebt.outstandingINR||0).toLocaleString()}`:'No liabilities.'}
+
+Please provide:
+
+1. PORTFOLIO HEALTH SUMMARY — overall assessment in 2-3 sentences
+2. ASSET ALLOCATION ANALYSIS — is the mix right for their risk appetite and life stage?
+3. RED FLAGS — specific investments that are problematic (over-concentration, poor returns, wrong product)
+4. WHAT TO STOP/EXIT — specific investments to consider stopping or exiting, with reasons
+5. WHAT TO ADD — specific investment types or instruments they are missing
+6. REBALANCING SUGGESTIONS — concrete steps to rebalance if needed
+7. DEBT vs INVEST PRIORITY — given their EMI burden, should they invest more or pay off debt first?
+8. TOP 3 IMMEDIATE ACTIONS — the 3 most important things to do this month
+
+Be specific, direct, and honest. Name the actual problems. Do not be vague or generic. If the portfolio is good, say so clearly. Format with clear headings.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(b=>b.text||'').join('\n') || 'No response received.';
+    showModal(formatAIResponse(text));
+  } catch(e) {
+    showModal(`<div class="ai-err">⚠️ Could not reach AI. Please check your connection and try again.<br><br><small>${e.message}</small></div>`);
+  }
+}
+
+function formatAIResponse(text){
+  // Convert markdown-style to HTML
+  let html = text
+    .replace(/^#{1,3}\s+(.+)$/gm, '<h4>$1</h4>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/gs, m=>`<ul>${m}</ul>`)
+    .split('\n\n').map(p=>{
+      if(p.startsWith('<h4>')||p.startsWith('<ul>')) return p;
+      if(p.trim()) return `<p>${p.trim()}</p>`;
+      return '';
+    }).join('\n');
+  // Colour-code key words
+  html = html
+    .replace(/\b(RED FLAG|WARNING|STOP|EXIT|PROBLEM|RISK)\b/gi, '<span class="tag tag-red">$1</span>')
+    .replace(/\b(GOOD|STRONG|EXCELLENT|WELL DONE|POSITIVE)\b/gi, '<span class="tag tag-green">$1</span>')
+    .replace(/\b(CONSIDER|REVIEW|WATCH|MONITOR|CAUTION)\b/gi, '<span class="tag tag-yellow">$1</span>');
+  return `<div class="ai-response">${html}</div>`;
+}
+
+// ── MODAL HELPERS ─────────────────────────────────────────────────
+function showModal(contentHtml){
+  const loading = `
+    <div class="ai-loading">
+      <div class="ai-pulse">🤖</div>
+      <p style="font-weight:600;font-size:1rem">Analysing your portfolio…</p>
+      <p>Scanning investments · Checking allocation · Identifying risks</p>
+    </div>`;
+  document.getElementById('modal-root').innerHTML=`
+    <div class="modal-overlay" onclick="closeModalOutside(event)">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>🔍 Portfolio Restructuring Analysis</h3>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body" id="modal-content">
+          ${contentHtml===null ? loading : contentHtml}
+        </div>
+      </div>
+    </div>`;
+}
+function closeModal(){document.getElementById('modal-root').innerHTML=''}
+function closeModalOutside(e){if(e.target.classList.contains('modal-overlay'))closeModal()}
+
+// ── STEP 4: LOANS ──────────────────────────────────────────────────
+function stepLiabilities(){
+  return `
+  <div class="card-header">
+    <h2>📋 Loans & Liabilities</h2>
+    <p>All outstanding loans. Drives your debt elimination plan and EMI-to-income health score.</p>
+  </div>
+  <div class="card-body">
+    ${S.liabilities.map((l,i)=>`
+      <div class="dynamic-row">
+        <button class="delete-btn" onclick="removeLiab(${i})">✕</button>
+        <div class="row-grid">
+          <div class="field"><label>Loan Name</label>
+            <input type="text" placeholder="e.g. SBI Home Loan" value="${l.name||''}" oninput="updateLiab(${i},'name',this.value)">
+          </div>
+          <div class="field"><label>Type</label>
+            <select onchange="updateLiab(${i},'type',this.value);render()">
+              ${LIAB_TYPES.map(t=>`<option ${l.type===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Outstanding (${S.currency})</label>
+            <input type="number" placeholder="0" value="${l.outstandingINR||''}" oninput="updateLiab(${i},'outstandingINR',this.value)">
+          </div>
+          <div class="field"><label>EMI / month</label>
+            <input type="number" placeholder="0" value="${l.emiINR||''}" oninput="updateLiab(${i},'emiINR',this.value)">
+          </div>
+        </div>
+        <div class="sub-row">
+          <div class="field" style="flex:1;min-width:130px"><label>Interest Rate (%)</label>
+            <input type="number" step="0.1" placeholder="e.g. 8.5" value="${l.rate||''}" oninput="updateLiab(${i},'rate',this.value)">
+          </div>
+          <div class="field" style="flex:1;min-width:130px"><label>Bank / Lender</label>
+            <input type="text" placeholder="e.g. HDFC Bank" value="${l.bank||''}" oninput="updateLiab(${i},'bank',this.value)">
+          </div>
+        </div>
+      </div>`).join('')}
+    <button class="add-btn" onclick="addLiab()">＋ Add Loan</button>
+    ${nav(true,true)}
+  </div>`;
+}
+
+// ── STEP 5: MONTHLY COMMITMENTS ────────────────────────────────────
+function stepCommitments(){
+  const me=S.name||'Me', sp=S.spouseName;
+  return `
+  <div class="card-header">
+    <h2>📅 Monthly Commitments</h2>
+    <p>All recurring payments — SIPs, premiums, family transfers, AED expenses. These populate your outflow tracker and salary allocation.</p>
+  </div>
+  <div class="card-body">
+    <div class="info-banner">
+      <span class="icon">💡</span>
+      <span>Add every recurring payment here. EMIs from your loans are auto-included — add SIPs, insurance premiums, family transfers, and any AED commitments separately here.</span>
+    </div>
+    ${S.commitments.map((c,i)=>`
+      <div class="dynamic-row">
+        <button class="delete-btn" onclick="removeCommit(${i})">✕</button>
+        <div class="row-grid">
+          <div class="field"><label>Name</label>
+            <input type="text" placeholder="e.g. WealthPlus SIP" value="${c.name||''}" oninput="updateCommit(${i},'name',this.value)">
+          </div>
+          <div class="field"><label>Amount (INR)</label>
+            <input type="number" placeholder="0" value="${c.inr||''}" oninput="updateCommit(${i},'inr',this.value)">
+          </div>
+          <div class="field"><label>Amount (AED)</label>
+            <input type="number" placeholder="0" value="${c.aed||''}" oninput="updateCommit(${i},'aed',this.value)">
+          </div>
+          <div class="field"><label>Category</label>
+            <select onchange="updateCommitDrop(${i},'cat',this.value)">
+              ${COMMIT_CATS.map(t=>`<option ${c.cat===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="sub-row">
+          <div class="field" style="flex:1;min-width:120px"><label>Paid By</label>
+            <select onchange="updateCommitDrop(${i},'by',this.value)">
+              <option ${!c.by||c.by===me?'selected':''}>${me}</option>
+              ${sp?`<option ${c.by===sp?'selected':''}>${sp}</option>`:''}
+              <option ${c.by==='Joint'?'selected':''}>Joint</option>
+            </select>
+          </div>
+          <div class="field" style="flex:1;min-width:120px"><label>Type</label>
+            <select onchange="updateCommitDrop(${i},'type',this.value)">
+              ${COMMIT_TYPES.map(t=>`<option ${c.type===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field" style="flex:1;min-width:110px"><label>Frequency</label>
+            <select onchange="updateCommitDrop(${i},'freq',this.value)">
+              ${FREQS.map(t=>`<option ${c.freq===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field" style="flex:2;min-width:160px"><label>Notes <span class="sublabel">(optional)</span></label>
+            <input type="text" placeholder="e.g. Paused Jun 2026" value="${c.notes||''}" oninput="updateCommit(${i},'notes',this.value)">
+          </div>
+        </div>
+      </div>`).join('')}
+    <button class="add-btn" onclick="addCommit()">＋ Add Commitment</button>
+    ${nav(true,true)}
+  </div>`;
+}
+
+// ── STEP 6: INSURANCE ──────────────────────────────────────────────
+function stepInsurance(){
+  const me=S.name||'Me', sp=S.spouseName;
+  return `
+  <div class="card-header">
+    <h2>🛡 Insurance Policies</h2>
+    <p>Term insurance, health cover, LIC policies. Drives your protection scorecard.</p>
+  </div>
+  <div class="card-body">
+    ${S.policies.map((p,i)=>`
+      <div class="dynamic-row">
+        <button class="delete-btn" onclick="removePol(${i})">✕</button>
+        <div class="row-grid">
+          <div class="field"><label>Policy Type</label>
+            <select onchange="updatePolDrop(${i},'type',this.value)">
+              ${POL_TYPES.map(t=>`<option ${p.type===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Sum Assured (${S.currency})</label>
+            <input type="number" placeholder="e.g. 10000000" value="${p.sumAssured||''}" oninput="updatePol(${i},'sumAssured',this.value)">
+          </div>
+          <div class="field"><label>Premium / month</label>
+            <input type="number" placeholder="0" value="${p.premium||''}" oninput="updatePol(${i},'premium',this.value)">
+          </div>
+          <div class="field"><label>Status</label>
+            <select onchange="updatePolDrop(${i},'status',this.value)">
+              ${['Active','Lapsed','Discontinued','Matured'].map(s=>`<option ${p.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="sub-row">
+          <div class="field" style="flex:1;min-width:140px"><label>Holder</label>
+            <select onchange="updatePolDrop(${i},'holder',this.value)">
+              <option ${!p.holder||p.holder===me?'selected':''}>${me}</option>
+              ${sp?`<option ${p.holder===sp?'selected':''}>${sp}</option>`:''}
+            </select>
+          </div>
+          <div class="field" style="flex:1;min-width:140px"><label>Policy # <span class="sublabel">(optional)</span></label>
+            <input type="text" placeholder="e.g. TM123456" value="${p.policyNum||''}" oninput="updatePol(${i},'policyNum',this.value)">
+          </div>
+          <label class="checkbox-row" style="margin-top:20px">
+            <input type="checkbox" ${p.lifeCover?'checked':''} onchange="updatePolDrop(${i},'lifeCover',this.checked)">
+            <span style="font-size:.87rem">Life Cover?</span>
+          </label>
+        </div>
+      </div>`).join('')}
+    <button class="add-btn" onclick="addPol()">＋ Add Policy</button>
+    ${nav(true,true)}
+  </div>`;
+}
+
+// ── STEP 7: GOALS ──────────────────────────────────────────────────
+function stepGoals(){
+  return `
+  <div class="card-header">
+    <h2>🎯 Financial Goals</h2>
+    <p>Add your goals — the tracker calculates the monthly SIP needed to reach each one.</p>
+  </div>
+  <div class="card-body">
+    <div class="info-banner">
+      <span class="icon">💡</span>
+      <span>Enter amounts in today's value. The tracker auto-adjusts for inflation and tells you exactly how much to invest monthly.</span>
+    </div>
+    ${S.goals.map((g,i)=>`
+      <div class="dynamic-row">
+        <button class="delete-btn" onclick="removeGoal(${i})">✕</button>
+        <div class="form-grid">
+          <div class="field"><label>Goal Name</label>
+            <input type="text" placeholder="e.g. Child's Education" value="${g.name||''}" oninput="updateGoal(${i},'name',this.value)">
+          </div>
+          <div class="field"><label>Goal Type</label>
+            <select onchange="updateGoal(${i},'type',this.value);render()">
+              ${GOAL_TYPES.map(t=>`<option ${g.type===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Amount Today (${S.currency})</label>
+            <input type="number" placeholder="e.g. 2000000" value="${g.amount||''}" oninput="updateGoal(${i},'amount',this.value)">
+          </div>
+          <div class="field"><label>Target Year</label>
+            <input type="number" min="${curYear()+1}" max="2075" placeholder="${curYear()+15}" value="${g.targetYear||''}" oninput="updateGoal(${i},'targetYear',this.value)">
+          </div>
+          <div class="field"><label>Savings Towards This <span class="sublabel">(0 if starting fresh)</span></label>
+            <input type="number" placeholder="0" value="${g.corpus||''}" oninput="updateGoal(${i},'corpus',this.value)">
+          </div>
+        </div>
+      </div>`).join('')}
+    <button class="add-btn" onclick="addGoal()">＋ Add Goal</button>
+    ${nav(true,true)}
+  </div>`;
+}
+
+// ── STEP 8: PREFERENCES ────────────────────────────────────────────
+function stepPreferences(){
+  return `
+  <div class="card-header">
+    <h2>⚙️ Preferences</h2>
+    <p>Final settings that shape your investment roadmap and recommendations.</p>
+  </div>
+  <div class="card-body">
+    <div class="field" style="margin-bottom:28px">
+      <label style="margin-bottom:12px;display:block">Risk Appetite</label>
+      <div class="risk-selector">
+        ${[
+          {id:'Low',  icon:'🛡',label:'Conservative',desc:'FDs, debt funds, gold'},
+          {id:'Medium',icon:'⚖️',label:'Balanced',   desc:'Mix of equity & debt'},
+          {id:'High', icon:'🚀',label:'Aggressive',  desc:'Equity, ETFs, stocks'},
+        ].map(r=>`
+          <div class="risk-option ${S.riskAppetite===r.id?'selected':''}" onclick="set({riskAppetite:'${r.id}'})">
+            <div class="risk-icon">${r.icon}</div>
+            <div class="risk-label">${r.label}</div>
+            <div class="risk-desc">${r.desc}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    ${nav(true,true)}
+  </div>`;
+}
+
+// ── STEP 9: REVIEW ─────────────────────────────────────────────────
+function stepReview(){
+  const totalInv =S.investments.reduce((s,i)=>s+parseFloat(i.investedINR||0),0);
+  const totalLiab=S.liabilities.reduce((s,l)=>s+parseFloat(l.outstandingINR||0),0);
+  const totalEMI =S.liabilities.reduce((s,l)=>s+parseFloat(l.emiINR||0),0);
+  const inc=parseFloat(S.income||0)+parseFloat(S.spouseIncome||0);
+  return `
+  <div class="card-header">
+    <h2>✅ Review & Generate</h2>
+    <p>Check your details then generate your personalised tracker — 14 sheets, all auto-linked.</p>
+  </div>
+  <div class="card-body">
+    <div class="review-grid">
+      <div class="review-card">
+        <h4>👤 Personal</h4>
+        <div class="review-item"><span>Name</span><span>${S.name||'—'}</span></div>
+        <div class="review-item"><span>Spouse</span><span>${S.spouseName||'—'}</span></div>
+        <div class="review-item"><span>Country</span><span>${S.country}</span></div>
+        <div class="review-item"><span>Children</span><span>${S.children.length}</span></div>
+      </div>
+      <div class="review-card">
+        <h4>💰 Income</h4>
+        <div class="review-item"><span>Currency</span><span>${S.currency}</span></div>
+        <div class="review-item"><span>Your Income</span><span>${fmt(S.income)}</span></div>
+        <div class="review-item"><span>Spouse Income</span><span>${fmt(S.spouseIncome)}</span></div>
+        <div class="review-item"><span>Combined</span><span>${fmt(inc)}/month</span></div>
+      </div>
+      <div class="review-card">
+        <h4>📈 Investments</h4>
+        <div class="review-item"><span>Count</span><span>${S.investments.length}</span></div>
+        <div class="review-item"><span>Total Invested</span><span>${S.currency} ${fmt(totalInv)}</span></div>
+        <div class="review-item"><span>Portfolio Review</span><span>${S.portfolioCheck==='yes'?'✅ Done':S.portfolioCheck==='no'?'Skipped':'—'}</span></div>
+      </div>
+      <div class="review-card">
+        <h4>📋 Liabilities</h4>
+        <div class="review-item"><span>Loans</span><span>${S.liabilities.length}</span></div>
+        <div class="review-item"><span>Total Outstanding</span><span>${S.currency} ${fmt(totalLiab)}</span></div>
+        <div class="review-item"><span>Total EMI/month</span><span>${S.currency} ${fmt(totalEMI)}</span></div>
+      </div>
+      <div class="review-card">
+        <h4>📅 Commitments</h4>
+        <div class="review-item"><span>Recurring items</span><span>${S.commitments.length}</span></div>
+      </div>
+      <div class="review-card">
+        <h4>🎯 Goals</h4>
+        <div class="review-item"><span>Goals Added</span><span>${S.goals.length}</span></div>
+        ${S.goals.slice(0,3).map(g=>`<div class="review-item"><span>${g.name||g.type}</span><span>${fmt(g.amount)}</span></div>`).join('')}
+      </div>
+      <div class="review-card full">
+        <h4>⚙️ Settings</h4>
+        <div class="review-item"><span>Risk Appetite</span><span>${S.riskAppetite}</span></div>
+        <div class="review-item"><span>Policies</span><span>${S.policies.length}</span></div>
+        <div class="review-item"><span>Output</span><span>14-tab tracker · .xlsx · Import to Google Sheets</span></div>
+      </div>
+    </div>
+    ${S.error?`<div class="err-banner">⚠️ ${S.error}</div>`:''}
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="prev()">← Back</button>
+      <button class="btn btn-generate" onclick="generate()" ${S.generating?'disabled':''}>
+        ${S.generating?'⏳ Generating...':'🚀 Generate My Tracker'}
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── GENERATING / SUCCESS ────────────────────────────────────────────
+function stepGenerating(){
+  return `<div class="generating">
+    <div class="spinner"></div>
+    <p style="font-weight:600;font-size:1rem;margin-bottom:6px">Building your tracker…</p>
+    <p>14 sheets · All formulas · All cross-linked</p>
+    <p style="margin-top:8px;font-size:0.8rem;color:#BCC2CA">This takes 5–10 seconds</p>
+  </div>`;
+}
+
+function stepSuccess(){
+  return `<div class="success-screen">
+    <div class="success-icon">🎉</div>
+    <h2>Your tracker is ready!</h2>
+    <p>Your personalised 14-sheet financial tracker has been generated. Download it and import into Google Sheets.</p>
+    <p style="font-size:0.82rem;color:var(--teal);margin-top:-16px">✓ Your data is auto-saved — click Edit &amp; Regenerate anytime to update and re-download.</p>
+    <a href="${S.downloadUrl}" download="${S.downloadName}" style="display:inline-block;margin-bottom:24px">
+      <button class="btn btn-generate">⬇️ Download ${S.downloadName}</button>
+    </a>
+    <div class="instructions">
+      <h4>📋 How to open your tracker</h4>
+      <ol>
+        <li>Open <strong>Google Sheets</strong> → File → Import → Upload</li>
+        <li>Select the downloaded file → click <strong>Import data</strong></li>
+        <li><strong>Blue cells</strong> = you enter data &nbsp;|&nbsp; <strong>Green cells</strong> = auto-calculated</li>
+        <li>Update <strong>📈 Investments</strong> current values monthly</li>
+        <li>Check <strong>📊 Dashboard</strong> for live Net Worth &amp; Health Score</li>
+      </ol>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-primary" style="display:flex;align-items:center;gap:8px"
+        onclick="set({generated:false,step:0,generating:false,error:'',downloadUrl:'',downloadName:''})">
+        ✏️ Edit &amp; Regenerate
+      </button>
+      <button class="btn btn-secondary"
+        onclick="clearAndReset()">
+        🗑 Start Fresh
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── GENERATE ───────────────────────────────────────────────────────
+async function generate(){
+  set({generating:true,error:''});
+  const payload={
+    name:        S.name||'User',
+    spouseName:  S.spouseName,
+    currency:    S.currency,
+    country:     S.country,
+    income:      parseFloat(S.income||0),
+    spouseIncome:parseFloat(S.spouseIncome||0),
+    riskAppetite:S.riskAppetite,
+    investments: S.investments.map(({id,...r})=>r),
+    liabilities: S.liabilities.map(({id,...r})=>r),
+    commitments: S.commitments.map(({id,...r})=>r),
+    policies:    S.policies.map(({id,...r})=>r),
+    goals:       S.goals.map(({id,...r})=>r),
+    children:    S.children.map(({id,...r})=>r),
+  };
+  try{
+    const res=await fetch('REPLACE_WITH_YOUR_RENDER_URL/generate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),
+    });
+    if(!res.ok){
+      const err=await res.json().catch(()=>({error:'Generation failed'}));
+      set({generating:false,error:err.error||'Generation failed. Please try again.'});
+      return;
+    }
+    const blob=await res.blob();
+    const url =URL.createObjectURL(blob);
+    const name=`Financial_Tracker_${(S.name||'User').replace(/\s+/g,'_')}.xlsx`;
+    set({generating:false,generated:true,downloadUrl:url,downloadName:name});
+    const a=document.createElement('a');a.href=url;a.download=name;a.click();
+  }catch(e){
+    set({generating:false,error:'Could not connect to server. Make sure the backend is running on port 5050.\n\nRun: python app.py'});
+  }
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────
+function renderStepBar(){
+  document.getElementById('steps-bar').innerHTML=STEPS.map((s,i)=>`
+    <div class="step ${i<S.step?'done':i===S.step?'active':''}">
+      <div class="step-dot">${i<S.step?'✓':(i+1)}</div>
+      <div class="step-label">${s.label}</div>
+    </div>`).join('');
+}
+
+function render(){
+  renderStepBar();
+  const app=document.getElementById('app');
+  if(S.generated) {app.innerHTML=stepSuccess();   return}
+  if(S.generating){app.innerHTML=stepGenerating();return}
+  const fns=[
+    stepPersonal,stepIncome,stepInvestments,stepLiabilities,
+    stepCommitments,stepInsurance,stepGoals,stepPreferences,stepReview,
+  ];
+  app.innerHTML=fns[S.step]();
+}
+
+loadState();
+render();
+</script>
+</body>
+</html>
