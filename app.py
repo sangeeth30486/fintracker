@@ -7,7 +7,7 @@ import io, traceback
 from datetime import datetime
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
 def fill(h):    return PatternFill("solid", fgColor=h)
 def border():
@@ -152,15 +152,25 @@ def build_tracker(data):
         bg = "F2F2F2" if r_num % 2 == 1 else "FFFFFF"
         cat_raw = inv.get("type","Other")
         cat = cat_map.get(cat_raw, cat_raw)
+        inv_currency = inv.get("invCurrency", currency)
+        # Route amount to correct column based on investment currency
+        invested_inr = sf(inv.get("investedINR",0)) if inv_currency == "INR" else 0
+        invested_fgn = sf(inv.get("investedINR",0)) if inv_currency != "INR" else 0
+        current_inr  = sf(inv.get("currentINR",0))  if inv_currency == "INR" else 0
+        current_fgn  = sf(inv.get("currentINR",0))  if inv_currency != "INR" else 0
+        inv_notes = inv.get("notes","")
+        if inv_currency not in ("INR",""):
+            ccy_note = f"Currency: {inv_currency}. "
+            inv_notes = ccy_note + inv_notes if inv_notes else ccy_note.strip()
         vals = [
             inv.get("name",""),   cat,
-            sf(inv.get("investedINR",0)), sf(inv.get("investedAED",0)),
+            invested_inr, invested_fgn,
             f"=C{r_num}+D{r_num}*{SET}!$B$4",
-            sf(inv.get("currentINR",0)), sf(inv.get("currentAED",0)),
+            current_inr, current_fgn,
             f"=F{r_num}+G{r_num}*{SET}!$B$4",
             "Active", inv.get("owner", name),
             "Yes" if inv.get("recurring") else "No", "N",
-            inv.get("notes",""),
+            inv_notes,
         ]
         fmts = ["","","",FMT_INR,"",FMT_INR,"",FMT_INR,"","","","",""]
         for j, (v, fmt) in enumerate(zip(vals, fmts), 1):
@@ -800,6 +810,4 @@ def health():
     return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get('PORT', 5050))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(debug=True, port=5050)
